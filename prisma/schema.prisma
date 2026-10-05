@@ -8,8 +8,31 @@ model User {
   name      String?
   passwordHash String?
   projects  Project[]
+  githubRepositories GitHubRepository[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model GitHubRepository {
+  id            String   @id @default(cuid())
+  owner         String
+  name          String
+  fullName      String
+  htmlUrl       String
+  description   String?
+  defaultBranch String?
+  language      String?
+  stars         Int      @default(0)
+  forks         Int      @default(0)
+  openIssues    Int      @default(0)
+  pushedAt      DateTime?
+  ownerId       String
+  user          User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([ownerId, fullName])
+  @@index([ownerId])
 }
 
 model Project {
