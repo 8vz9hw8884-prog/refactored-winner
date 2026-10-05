@@ -1,0 +1,1 @@
+export default function TasksPage(){return <main className="mx-auto max-w-6xl px-6 py-12"><h1 className="text-3xl font-semibold">Tasks</h1><div className="mt-8 rounded-xl border border-dashed border-zinc-700 p-10 text-center"><h2 className="font-medium">No tasks yet</h2><p className="mt-2 text-sm text-zinc-500">Tasks will belong to projects.</p></div></main>}
