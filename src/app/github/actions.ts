@@ -84,16 +84,34 @@ export async function analyzeGitHubRepository(formData: FormData) {
   if (!response.ok) return;
 
   const data = await response.json() as { tree?: Array<{ path: string; type: string; size?: number }> };
-  const tree = data.tree ?? [];
-  const files = tree.filter(item => item.type === "blob");
+  const files = (data.tree ?? []).filter(item => item.type === "blob");
   const codeFiles = files.filter(item => shouldScan(item.path));
   const largeFileCount = codeFiles.filter(item => (item.size ?? 0) > 50_000).length;
   const totalBytes = codeFiles.reduce((sum, item) => sum + (item.size ?? 0), 0);
+  const candidates = codeFiles.filter(item => (item.size ?? 0) <= 250_000).slice(0, 20);
 
-  const sizePenalty = Math.min(35, largeFileCount * 5);
-  const breadthPenalty = codeFiles.length === 0 ? 40 : 0;
-  const score = Math.max(0, Math.min(100, 100 - sizePenalty - breadthPenalty));
+  const findings: Array<{ kind: string; severity: string; path: string; line?: number; message: string }> = [];
+  for (const file of candidates) {
+    if ((file.size ?? 0) > 50_000) findings.push({ kind: "large-file", severity: "MEDIUM", path: file.path, message: "Source file is larger than 50 KB; consider splitting it into smaller modules." });
+    const rawUrl = `https://raw.githubusercontent.com/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/${file.path.split("/").map(encodeURIComponent).join("/")}`;
+    const raw = await fetch(rawUrl, { headers: { "User-Agent": "refactored-winner" }, cache: "no-store" });
+    if (!raw.ok) continue;
+    const lines = (await raw.text()).split(/\r?\n/);
+    lines.forEach((line, index) => {
+      const lineNumber = index + 1;
+      if (/\b(TODO|FIXME)\b/i.test(line)) findings.push({ kind: "todo", severity: "LOW", path: file.path, line: lineNumber, message: "TODO/FIXME comment indicates unfinished or deferred work." });
+      if (/\bconsole\.(log|debug|info)\s*\(/.test(line) && /\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file.path)) findings.push({ kind: "debug-output", severity: "LOW", path: file.path, line: lineNumber, message: "Console debug output is present; remove it or replace it with structured logging." });
+      if (line.length > 160) findings.push({ kind: "long-line", severity: "INFO", path: file.path, line: lineNumber, message: "Line exceeds 160 characters and may be harder to review or maintain." });
+    });
+  }
 
+  const findingPenalty = findings.reduce((sum, finding) => sum + (finding.severity === "MEDIUM" ? 5 : finding.severity === "LOW" ? 2 : 0), 0);
+  const score = Math.max(0, Math.min(100, 100 - Math.min(35, largeFileCount * 5) - Math.min(30, findingPenalty) - (codeFiles.length === 0 ? 40 : 0)));
+
+  await prisma.codeFinding.deleteMany({ where: { repositoryId: repository.id } });
+  if (findings.length) {
+    await prisma.codeFinding.createMany({ data: findings.map(finding => ({ ...finding, repositoryId: repository.id })) });
+  }
   await prisma.gitHubRepository.update({
     where: { id: repository.id },
     data: { analysisScore: score, analyzedAt: new Date(), fileCount: files.length, codeFileCount: codeFiles.length, totalBytes, largeFileCount }
