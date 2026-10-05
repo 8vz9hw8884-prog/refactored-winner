@@ -29,6 +29,14 @@ export default async function GitHubPage() {
   if (!session?.user?.email) return null;
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
   const repositories = user ? await prisma.gitHubRepository.findMany({ where: { ownerId: user.id }, orderBy: { updatedAt: "desc" } }) : [];
+  const findingsByRepository = new Map<string, Awaited<ReturnType<typeof prisma.codeFinding.findMany>>>();
+  await Promise.all(repositories.map(async repo => {
+    findingsByRepository.set(repo.id, await prisma.codeFinding.findMany({
+      where: { repositoryId: repo.id },
+      orderBy: [{ severity: "asc" }, { createdAt: "desc" }],
+      take: 8
+    }));
+  }));
 
   return <main className="mx-auto max-w-6xl px-6 py-12">
     <p className="text-sm text-zinc-500">Integration</p>
@@ -49,6 +57,26 @@ export default async function GitHubPage() {
           <div><p className="text-xs text-zinc-500">Forks</p><p className="mt-1 font-medium">{repo.forks}</p></div>
           <div><p className="text-xs text-zinc-500">Issues</p><p className="mt-1 font-medium">{repo.openIssues}</p></div>
           <div><p className="text-xs text-zinc-500">Language</p><p className="mt-1 font-medium">{repo.language || "Unknown"}</p></div>
+        </div>
+        <div className="mt-5 rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Code analysis</p>
+            {repo.analysisScore !== null && <span className="text-xs text-zinc-400">Score {repo.analysisScore}</span>}
+          </div>
+          <p className="mt-1 text-xs text-zinc-500">
+            {repo.analyzedAt ? `Analyzed ${repo.analyzedAt.toLocaleDateString()} · ${repo.codeFileCount ?? 0} code files · ${repo.fileCount ?? 0} total files` : "Not analyzed yet."}
+          </p>
+          {findingsByRepository.get(repo.id)?.length ? <div className="mt-3 space-y-2">
+            {findingsByRepository.get(repo.id)!.map(finding => <div key={finding.id} className="text-xs">
+              <span className="font-medium">{finding.severity}</span>{" "}
+              <span className="text-zinc-400">{finding.path}{finding.line ? `:${finding.line}` : ""}</span>
+              <p className="mt-0.5 text-zinc-500">{finding.message}</p>
+            </div>)}
+          </div> : null}
+          <form action={analyzeGitHubRepository} className="mt-3">
+            <input type="hidden" name="repositoryId" value={repo.id} />
+            <button className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs hover:bg-zinc-900">Analyze code</button>
+          </form>
         </div>
         <div className="mt-5 flex items-center justify-between border-t border-zinc-800 pt-4">
           <p className="text-xs text-zinc-500">Last push: {repo.pushedAt ? repo.pushedAt.toLocaleDateString() : "Unknown"}</p>
