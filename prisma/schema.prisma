@@ -57,3 +57,17 @@ model Task {
   updatedAt   DateTime @updatedAt
   @@index([projectId])
 }
+model CodeFinding {
+  id           String           @id @default(cuid())
+  repositoryId String
+  repository   GitHubRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  kind         String
+  severity     String
+  path         String
+  line         Int?
+  message      String
+  createdAt    DateTime         @default(now())
+
+  @@index([repositoryId])
+  @@index([repositoryId, severity])
+}
