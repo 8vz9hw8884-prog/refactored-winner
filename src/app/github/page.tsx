@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { addGitHubRepository, refreshGitHubRepository } from "./actions";
+import { addGitHubRepository, analyzeGitHubRepository, refreshGitHubRepository } from "./actions";
 
 function health(repo: { openIssues: number; pushedAt: Date | null; stars: number; forks: number }) {
   let score = 100;
