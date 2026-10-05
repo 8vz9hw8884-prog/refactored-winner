@@ -12,7 +12,9 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "@prisma/client": "latest"
+    "@prisma/client": "latest",
+    "next-auth": "latest",
+    "bcryptjs": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
@@ -23,6 +25,7 @@
     "eslint-config-next": "latest",
     "tailwindcss": "latest",
     "typescript": "latest",
-    "prisma": "latest"
+    "prisma": "latest",
+    "@types/bcryptjs": "latest"
   }
 }
