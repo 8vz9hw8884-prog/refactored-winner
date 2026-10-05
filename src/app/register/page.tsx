@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { register } from "../auth/actions";
+
+export default function RegisterPage() {
+  return <main className="mx-auto max-w-md px-6 py-16"><h1 className="text-3xl font-semibold">Create your account</h1><p className="mt-2 text-sm text-zinc-500">Start your first workspace in minutes.</p><form action={register} className="mt-8 space-y-4 rounded-xl border border-zinc-800 p-6"><div><label htmlFor="name" className="text-sm">Name</label><input id="name" name="name" className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"/></div><div><label htmlFor="email" className="text-sm">Email</label><input id="email" name="email" type="email" required className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"/></div><div><label htmlFor="password" className="text-sm">Password</label><input id="password" name="password" type="password" minLength={8} required className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2"/></div><button className="w-full rounded-lg bg-white px-4 py-2 font-medium text-black">Create account</button></form><p className="mt-6 text-center text-sm text-zinc-500">Already registered? <Link href="/login" className="text-white underline">Sign in</Link></p></main>;
+}
