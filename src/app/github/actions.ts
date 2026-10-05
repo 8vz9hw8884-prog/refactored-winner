@@ -54,3 +54,38 @@ export async function addGitHubRepository(formData: FormData) {
   });
   revalidatePath("/github");
 }
+
+export async function refreshGitHubRepository(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.email) redirect("/login");
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) redirect("/login");
+
+  const repositoryId = String(formData.get("repositoryId") ?? "");
+  const repository = await prisma.gitHubRepository.findFirst({ where: { id: repositoryId, ownerId: user.id } });
+  if (!repository) return;
+
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}`,
+    { headers: { Accept: "application/vnd.github+json", "User-Agent": "refactored-winner" }, cache: "no-store" }
+  );
+  if (!response.ok) return;
+
+  const data = await response.json() as {
+    full_name: string; html_url: string; description: string | null;
+    default_branch: string; language: string | null; stargazers_count: number;
+    forks_count: number; open_issues_count: number; pushed_at: string | null;
+  };
+
+  await prisma.gitHubRepository.update({
+    where: { id: repository.id },
+    data: {
+      fullName: data.full_name, htmlUrl: data.html_url, description: data.description,
+      defaultBranch: data.default_branch, language: data.language,
+      stars: data.stargazers_count, forks: data.forks_count,
+      openIssues: data.open_issues_count,
+      pushedAt: data.pushed_at ? new Date(data.pushed_at) : null
+    }
+  });
+  revalidatePath("/github");
+}
