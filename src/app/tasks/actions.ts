@@ -1,14 +1,3 @@
 "use server";
-
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
-
-export async function createTask(formData: FormData) {
-  const title = String(formData.get("title") ?? "").trim();
-  const projectId = String(formData.get("projectId") ?? "").trim();
-  if (!title || !projectId) return;
-
-  await prisma.task.create({ data: { title, projectId } });
-  revalidatePath("/tasks");
-  revalidatePath("/dashboard");
-}
+import { revalidatePath } from "next/cache"; import { redirect } from "next/navigation"; import { prisma } from "@/lib/prisma"; import { auth } from "@/auth";
+export async function createTask(formData:FormData){const session=await auth(); if(!session?.user?.email)redirect("/login"); const title=String(formData.get("title")??"").trim(); const projectId=String(formData.get("projectId")??"").trim(); if(!title||!projectId)return; const user=await prisma.user.findUnique({where:{email:session.user.email}}); if(!user)redirect("/login"); const project=await prisma.project.findFirst({where:{id:projectId,ownerId:user.id}}); if(!project)return; await prisma.task.create({data:{title,projectId}}); revalidatePath("/tasks"); revalidatePath("/dashboard");}
