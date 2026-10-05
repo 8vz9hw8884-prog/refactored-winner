@@ -1,17 +1,2 @@
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-
-const DEMO_EMAIL = "demo@refactoredwinner.local";
-
-export default async function DashboardPage() {
-  const user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
-  const projects = user ? await prisma.project.count({ where: { ownerId: user.id } }) : 0;
-  const openTasks = user ? await prisma.task.count({ where: { project: { ownerId: user.id }, completed: false } }) : 0;
-  const completed = user ? await prisma.task.count({ where: { project: { ownerId: user.id }, completed: true } }) : 0;
-
-  return <main className="mx-auto max-w-6xl px-6 py-12">
-    <div className="flex items-end justify-between"><div><p className="text-sm text-zinc-500">Workspace</p><h1 className="mt-1 text-3xl font-semibold">Dashboard</h1></div><Link href="/projects" className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black">New project</Link></div>
-    <div className="mt-8 grid gap-4 sm:grid-cols-3">{[["Projects",projects],["Open tasks",openTasks],["Completed",completed]].map(([label,value])=><div key={label} className="rounded-xl border border-zinc-800 p-5"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>)}</div>
-    <div className="mt-8 grid gap-4 sm:grid-cols-2"><Link href="/projects" className="rounded-xl border border-zinc-800 p-6 hover:border-zinc-600"><h2 className="font-medium">Projects</h2><p className="mt-2 text-sm text-zinc-500">Create and organize your work.</p></Link><Link href="/tasks" className="rounded-xl border border-zinc-800 p-6 hover:border-zinc-600"><h2 className="font-medium">Tasks</h2><p className="mt-2 text-sm text-zinc-500">Turn projects into actionable work.</p></Link></div>
-  </main>;
-}
+import Link from "next/link"; import { redirect } from "next/navigation"; import { auth } from "@/auth"; import { prisma } from "@/lib/prisma";
+export default async function DashboardPage(){const session=await auth(); if(!session?.user?.email)redirect("/login"); const user=await prisma.user.findUnique({where:{email:session.user.email}}); const projects=user?await prisma.project.count({where:{ownerId:user.id}}):0; const openTasks=user?await prisma.task.count({where:{project:{ownerId:user.id},completed:false}}):0; const completed=user?await prisma.task.count({where:{project:{ownerId:user.id},completed:true}}):0; return <main className="mx-auto max-w-6xl px-6 py-12"><div className="flex items-end justify-between"><div><p className="text-sm text-zinc-500">Welcome back</p><h1 className="mt-1 text-3xl font-semibold">Dashboard</h1></div><Link href="/projects" className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black">New project</Link></div><div className="mt-8 grid gap-4 sm:grid-cols-3">{[["Projects",projects],["Open tasks",openTasks],["Completed",completed]].map(([label,value])=><div key={label} className="rounded-xl border border-zinc-800 p-5"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>)}</div><div className="mt-8 grid gap-4 sm:grid-cols-2"><Link href="/projects" className="rounded-xl border border-zinc-800 p-6"><h2 className="font-medium">Projects</h2><p className="mt-2 text-sm text-zinc-500">Create and organize your work.</p></Link><Link href="/tasks" className="rounded-xl border border-zinc-800 p-6"><h2 className="font-medium">Tasks</h2><p className="mt-2 text-sm text-zinc-500">Turn projects into actionable work.</p></Link></div></main>}
