@@ -5,7 +5,8 @@ datasource db { provider = "postgresql" url = env("DATABASE_URL") }
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
-  name      String?\n  passwordHash String?
+  name      String?
+  passwordHash String?
   projects  Project[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
